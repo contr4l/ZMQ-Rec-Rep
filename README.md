@@ -21,6 +21,20 @@ cmake --install build
 
 ## Data Structure
 
+One DataPacket = Header + Body
+
+### Header
+|Field |timestamp |ip | port| topic_len| data_len|
+|---|---|---|---|---|---|
+|Type|u32|u32|u16|u16|u16|
+|Size|4|4|2|2|2|
+
+### Body
+|Field |topic|data|
+|---|---|---|
+|Type|char*|u8[]|
+|Size|topic_len|data_len|
+
 
 ## Usage
 ### Recorder
