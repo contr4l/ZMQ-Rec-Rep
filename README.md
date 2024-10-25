@@ -48,6 +48,9 @@ void usage() {
     printf("  --topic       set topic filter string for sub mode, default empty string\n");
 }
 ```
+Update:
+You can also use --port "8001|8002|8003" to listen several ports.
+
 ### Replayer
 ```cpp
 void usage() {
