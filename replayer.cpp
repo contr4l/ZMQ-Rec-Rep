@@ -1,3 +1,4 @@
+#include "parse_cfg.h"
 #include "zmq.hpp"
 #include <atomic>
 #include <chrono>
@@ -6,7 +7,6 @@
 #include <memory>
 #include <thread>
 
-#include "parse_cfg.h"
 #include "replayer.hpp"
 
 std::atomic<bool> shutdown(false);

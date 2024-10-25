@@ -16,7 +16,7 @@
 
 constexpr int ms2s = 1000;
 constexpr int ns2s = 1000000000;
-constexpr int write_buf_len = 1024;
+constexpr int write_buf_len = 65535;
 
 class Recorder {
     // 接收zmq感知结果，发送至DDS
@@ -144,18 +144,32 @@ private:
 
 public:
     void Init(std::unordered_map<std::string, std::string>& args) {
+        std::vector<std::string> ports;
 
-        std::string uri = "tcp://" + args["src"] + ":" + args["port"];
-        std::string topic = args["topic"];
-        std::string mode = args["mode"];
+        int idx = 0;
+        while (idx < args["port"].length()) {
+            if (args["port"][idx] == '|') {
+                break;
+            }
+            idx++;
+        }
+        if (idx == args["port"].length()) {
+            ports.push_back(args["port"]);
+        } else {
+            ports = split(args["port"], '|');
+        }
+        for (auto& port : ports) {
+            std::string uri = "tcp://" + args["src"] + ":" + port;
+            std::string topic = args["topic"];
+            std::string mode = args["mode"];
 
-        uint32_t ip = ipStringToUint32(args["src"]);
-        uint16_t port = std::stoi(args["port"]) & 0xFFFF;
+            uint32_t ip = ipStringToUint32(args["src"]);
 
-        _sockets.emplace_back(_context, mode == "sub" ? ZMQ_SUB : ZMQ_REP);
-        zmq::socket_t& sock = _sockets.back();
-        _socket_src_map[sock] = {ip, port};
-        init_recv_socket(sock, uri, topic, mode);
+            _sockets.emplace_back(_context, mode == "sub" ? ZMQ_SUB : ZMQ_REP);
+            zmq::socket_t& sock = _sockets.back();
+            _socket_src_map[sock] = {ip, std::stoi(port)};
+            init_recv_socket(sock, uri, topic, mode);
+        }
     };
 
     void Run() {

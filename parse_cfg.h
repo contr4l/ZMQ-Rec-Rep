@@ -17,5 +17,6 @@ std::string getCurrentDateTimeString();
 uint32_t ipStringToUint32(std::string& ip);
 std::string ipPortToTcpString(uint32_t ip, uint16_t port);
 uint32_t monotonic_timestmap();
+std::vector<std::string> split(const std::string& input, char delimiter);
 
 #endif

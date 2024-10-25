@@ -52,15 +52,22 @@ uint32_t monotonic_timestmap() {
     return start_mono_time.tv_sec * 1000 + start_mono_time.tv_nsec / 1000000;
 }
 
-uint32_t ipStringToUint32(std::string& ip) {
-    std::vector<int> octets;
-    std::istringstream iss(ip);
-    std::string octet;
+std::vector<std::string> split(const std::string& input, char delimiter) {
+    std::vector<std::string> result;
+    std::stringstream ss(input);
+    std::string item;
 
-    // 分割IP字符串
-    while (std::getline(iss, octet, '.')) {
-        octets.push_back(std::stoi(octet));
+    while (std::getline(ss, item, delimiter)) {
+        result.push_back(item);
     }
+
+    return result;
+}
+
+uint32_t ipStringToUint32(std::string& ip) {
+    std::istringstream iss(ip);
+
+    auto octets = split(ip, '.');
 
     // 检查是否分割出4个部分
     if (octets.size() != 4) {
@@ -70,7 +77,7 @@ uint32_t ipStringToUint32(std::string& ip) {
     // 将4个部分组合成一个uint32_t
     uint32_t result = 0;
     for (int i = 0; i < 4; ++i) {
-        result = (result << 8) | octets[i];
+        result = (result << 8) | std::stoi(octets[i]);
     }
 
     return result;
@@ -86,3 +93,4 @@ std::string ipPortToTcpString(uint32_t ip, uint16_t port) {
     oss << port;
     return oss.str();
 }
+
