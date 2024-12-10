@@ -27,7 +27,7 @@ private:
 private:
     zmq::context_t _context;
     std::vector<zmq::socket_t> _sockets;
-    zmq::poller_t<> poller;
+    std::vector<zmq::pollitem_t> poll_items;
 
     std::map<zmq::socket_ref, std::pair<int, int>> _socket_src_map;
 
@@ -79,7 +79,7 @@ private:
         printf("init recv socket %s\n", uri.c_str());
         sock.connect(uri);
         sock.set(zmq::sockopt::subscribe, filter);
-        this->poller.add(sock, zmq::event_flags::pollin);
+        poll_items.push_back({sock, 0, ZMQ_POLLIN, 0});
     }
 
     void msg_record(zmq::message_t& msg) {
@@ -105,26 +105,25 @@ private:
     }
 
     void receive_process() {
-        std::vector<zmq::poller_event<>> in_events(_sockets.size());
         const std::chrono::milliseconds timeout{1000};
 
         while (_active_flag) {
-            const auto nin = this->poller.wait_all(in_events, timeout);
-            if (!nin) {
-                printf("poll timeout for 1000ms...\n");
-                continue;
-            }
-            for (int ind = 0; ind < nin; ++ind) {
+            zmq::poll(poll_items.data(), poll_items.size(), timeout);
+
+            for (int ind = 0; ind < poll_items.size(); ++ind) {
+                if (!(poll_items[ind].revents & ZMQ_POLLIN)) {
+                    continue;
+                }
+                zmq::socket_ref sock = _sockets[ind];
                 // 写入当前socket信息
-                msg_record(in_events[ind].socket);
+                msg_record(sock);
 
                 zmq::message_t topic, body;
-                // data
-                auto res = in_events[ind].socket.recv(topic, zmq::recv_flags::none);
+                auto res = sock.recv(topic, zmq::recv_flags::none);
                 if (topic.more()) {
                     // 有topic的情况
                     spdlog::info("receive msg on {}, topic is {}", ind, topic.to_string());
-                    in_events[ind].socket.recv(body, zmq::recv_flags::none);
+                    sock.recv(body, zmq::recv_flags::none);
                     msg_record(topic.size());
                     msg_record(body.size());
                     msg_record(topic);
@@ -165,7 +164,7 @@ public:
 
             uint32_t ip = ipStringToUint32(args["src"]);
 
-            _sockets.emplace_back(_context, mode == "sub" ? ZMQ_SUB : ZMQ_REP);
+            _sockets.emplace_back(_context, mode == "sub" ? ZMQ_SUB : ZMQ_PULL);
             zmq::socket_t& sock = _sockets.back();
             _socket_src_map[sock] = {ip, std::stoi(port)};
             init_recv_socket(sock, uri, topic, mode);
